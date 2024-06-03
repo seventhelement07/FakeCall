@@ -1,0 +1,95 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@drawable/background_gradient">
+
+    <TextView
+        android:id="@+id/tv_status"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Incoming call"
+        android:textColor="#00FF00"
+        android:textSize="18sp"
+        android:layout_centerHorizontal="true"
+        android:layout_marginTop="16dp" />
+
+    <TextView
+        android:paddingTop="80dp"
+        android:id="@+id/tv_caller_name"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Aurgha Ece"
+        android:textColor="@android:color/white"
+        android:textSize="35sp"
+        android:textStyle="bold"
+        android:layout_below="@id/tv_status"
+        android:layout_centerHorizontal="true"
+        android:layout_marginTop="8dp" />
+
+    <TextView
+        android:id="@+id/tv_caller_info"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Mobile +917407002363"
+        android:textColor="@android:color/white"
+        android:textSize="18sp"
+        android:layout_below="@id/tv_caller_name"
+        android:layout_centerHorizontal="true"
+        android:layout_marginTop="4dp" />
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_alignParentBottom="true"
+        android:orientation="horizontal"
+        android:gravity="center"
+        android:layout_marginBottom="50dp">
+
+        <RelativeLayout
+            android:layout_width="wrap_content"
+            android:background="@drawable/white_circle"
+            android:layout_height="wrap_content"
+            android:layout_marginEnd="40dp">
+
+            <ImageView
+                android:layout_width="100dp"
+                android:layout_height="100dp"
+                android:layout_centerInParent="true"
+                android:src="@drawable/white_circle"
+                android:layout_gravity="center"
+                 />
+
+            <ImageButton
+                android:id="@+id/btn_accept_call"
+                android:layout_width="80dp"
+                android:layout_height="80dp"
+                android:layout_centerInParent="true"
+                android:background="@drawable/green_circle"
+                android:src="@drawable/ic_call" />
+        </RelativeLayout>
+
+        <RelativeLayout
+            android:background="@drawable/white_circle"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="40dp">
+
+            <ImageView
+                android:layout_width="100dp"
+                android:layout_height="100dp"
+                android:layout_centerInParent="true"
+                android:layout_gravity="center"
+
+                android:src="@drawable/white_circle" />
+
+            <ImageButton
+                android:id="@+id/btn_reject_call"
+                android:layout_width="80dp"
+                android:layout_height="80dp"
+                android:background="@drawable/red_circle"
+                android:src="@drawable/ic_call_end"
+                android:layout_centerInParent="true" />
+        </RelativeLayout>
+    </LinearLayout>
+</RelativeLayout>
