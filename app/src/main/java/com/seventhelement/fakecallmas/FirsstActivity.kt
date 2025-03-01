@@ -7,6 +7,7 @@ import android.content.SharedPreferences
 import android.os.Build
 import android.os.Bundle
 import android.view.View
+import android.widget.Toast
 import androidx.annotation.RequiresApi
 import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.lifecycleScope
@@ -34,7 +35,10 @@ class FirsstActivity : AppCompatActivity(), FirstActivityAddCallAdapter.OnItemCl
         setContentView(binding.root)
         dao = (application as CallApp).db.dao()
         sharedPreferences = getSharedPreferences("MyPrefs", Context.MODE_PRIVATE)
-
+       val CallActivitysharedPreferences = getSharedPreferences("FakeCallPreferences", Context.MODE_PRIVATE)
+        name = CallActivitysharedPreferences.getString("name", "Unknown Caller").toString()
+        phoneNumber= CallActivitysharedPreferences.getString("phone", "Unknown Number").toString()
+        //Toast.makeText(this,name+" "+phoneNumber,Toast.LENGTH_SHORT).show()
         // Retrieve the selected item from SharedPreferences
         selectedItem = sharedPreferences.getInt("selectedItem", -1)
         //Toast.makeText(this,selectedItem.toString(),Toast.LENGTH_SHORT).show()
