@@ -11,15 +11,17 @@ import android.hardware.Sensor
 import android.hardware.SensorManager
 import android.os.Build
 import android.os.IBinder
-import android.provider.Settings
 import android.util.Log
-import android.widget.Toast
-import androidx.annotation.RequiresApi
 import androidx.core.app.NotificationCompat
 import com.seventhelement.fakecallmas.CallActivity
 import com.seventhelement.fakecallmas.MainActivity
+import com.seventhelement.fakecallmas.R
+
 val CHANNEL_ID = "Foreground Service"
-class FourGroundService:Service(), ShakeDetector.OnShakeListener {
+var name: String = ""
+var phone: String = ""
+
+class FourGroundService : Service(), ShakeDetector.OnShakeListener {
 
     private lateinit var sensorManager: SensorManager
     private lateinit var accelerometer: Sensor
@@ -43,6 +45,9 @@ class FourGroundService:Service(), ShakeDetector.OnShakeListener {
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         sensorManager.registerListener(shakeDetector, accelerometer, SensorManager.SENSOR_DELAY_UI)
+        name = intent?.getStringExtra("name").toString()
+        phone = intent?.getStringExtra("number").toString()
+
         return START_STICKY
     }
 
@@ -51,18 +56,15 @@ class FourGroundService:Service(), ShakeDetector.OnShakeListener {
         sensorManager.unregisterListener(shakeDetector)
     }
 
-
     override fun onShake() {
         Log.d("ShakeDetectionService", "Shake detected!")
         try {
-            // Use PendingIntent to start CallActivity
             val intent = Intent(this, CallActivity::class.java).apply {
-                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP)
+                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP)
+                putExtra("name1", name)
+                putExtra("number1", phone)
             }
-            val pendingIntent = PendingIntent.getActivity(
-                this, 0, intent, PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
-            )
-            pendingIntent.send()
+            startActivity(intent)
             Log.d("ShakeDetectionService", "CallActivity started")
         } catch (e: Exception) {
             Log.e("ShakeDetectionService", "Failed to start CallActivity", e)
@@ -81,7 +83,8 @@ class FourGroundService:Service(), ShakeDetector.OnShakeListener {
 
         val notification: Notification = NotificationCompat.Builder(this, NOTIFICATION_CHANNEL_ID)
             .setContentTitle("Shake Detection Service")
-            .setContentText("Listening for shake gestures...") // Replace with your own icon
+            .setContentText("Listening for shake gestures...")
+            .setSmallIcon(R.drawable.ic_notification) // Replace with your own icon
             .setContentIntent(pendingIntent)
             .build()
 

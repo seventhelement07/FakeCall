@@ -13,13 +13,12 @@ import com.seventhelement.fakecallmas.R
 
 class FirstActivityAddCallAdapter(
     private val contacts: List<CallEntity>,
-    private val listener: OnItemClickListener
+    private val listener: OnItemClickListener,
+    private var selectedPosition: Int
 ) : RecyclerView.Adapter<FirstActivityAddCallAdapter.ContactViewHolder>() {
 
-    var selectedItemPosition = RecyclerView.NO_POSITION
-
     interface OnItemClickListener {
-        fun onItemClick(position: Int,name:String,phoneNumber:String)
+        fun onItemClick(position: Int, name: String, phoneNumber: String)
     }
 
     class ContactViewHolder(itemView: View) : RecyclerView.ViewHolder(itemView) {
@@ -41,7 +40,7 @@ class FirstActivityAddCallAdapter(
         holder.phoneNumber.text = contact.number.toString()
 
         // Change background color when item is selected
-        if (position == selectedItemPosition) {
+        if (position == selectedPosition) {
             holder.ll.setBackgroundResource(R.drawable.rounded_corner_background_green)
         } else {
             holder.ll.setBackgroundResource(R.drawable.rounded_corner_background_white)
@@ -49,15 +48,14 @@ class FirstActivityAddCallAdapter(
 
         // Handle item click
         holder.itemView.setOnClickListener {
-            // Get the previous selected item position
-            val previousSelectedItemPosition = selectedItemPosition
-            // Update the selected item position
-            selectedItemPosition = holder.adapterPosition
+            // Update the selected position
+            val previousSelectedPosition = selectedPosition
+            selectedPosition = holder.adapterPosition
             // Notify item changes to update UI
-            notifyItemChanged(previousSelectedItemPosition)
-            notifyItemChanged(selectedItemPosition)
+            notifyItemChanged(previousSelectedPosition)
+            notifyItemChanged(selectedPosition)
             // Call the listener to pass the item position to the activity
-            listener.onItemClick(position,contact.name,contact.number.toString())
+            listener.onItemClick(selectedPosition, contact.name, contact.number.toString())
         }
     }
 

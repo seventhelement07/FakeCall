@@ -1,15 +1,17 @@
 package com.seventhelement.fakecallmas
 
+import android.app.ActivityManager
+import android.content.Context
 import android.content.Intent
+import android.content.SharedPreferences
 import android.os.Build
-import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
 import android.view.View
 import androidx.annotation.RequiresApi
+import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
-import androidx.room.Dao
 import com.seventhelement.fakecallmas.Adapter.FirstActivityAddCallAdapter
 import com.seventhelement.fakecallmas.Database.CallApp
 import com.seventhelement.fakecallmas.Database.CallDao
@@ -17,18 +19,38 @@ import com.seventhelement.fakecallmas.databinding.ActivityFirsstBinding
 import com.seventhelement.fakecallmas.service.FourGroundService
 import kotlinx.coroutines.launch
 
-class FirsstActivity : AppCompatActivity(), FirstActivityAddCallAdapter.OnItemClickListener  {
-    lateinit var binding: ActivityFirsstBinding
-    lateinit var dao: CallDao
-    var name=""
-    var phonenumber=""
-   var selectedItem=-1
+class FirsstActivity : AppCompatActivity(), FirstActivityAddCallAdapter.OnItemClickListener {
+    private lateinit var binding: ActivityFirsstBinding
+    private lateinit var dao: CallDao
+    private lateinit var sharedPreferences: SharedPreferences
+    private var selectedItem = -1
+    private var name = ""
+    private var phoneNumber = ""
+
     @RequiresApi(Build.VERSION_CODES.O)
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         binding = ActivityFirsstBinding.inflate(layoutInflater)
         setContentView(binding.root)
         dao = (application as CallApp).db.dao()
+        sharedPreferences = getSharedPreferences("MyPrefs", Context.MODE_PRIVATE)
+
+        // Retrieve the selected item from SharedPreferences
+        selectedItem = sharedPreferences.getInt("selectedItem", -1)
+        //Toast.makeText(this,selectedItem.toString(),Toast.LENGTH_SHORT).show()
+        updateActivateButtonState()
+        var isServiceOn=isServiceRunning(this,FourGroundService::class.java)
+      if(isServiceOn)
+      {
+          binding.activateButton.text="De-Active"
+      }
+        else
+      {
+          binding.activateButton.text="Active"
+
+      }
+
+
         binding.addcallButton.setOnClickListener {
             val intent = Intent(this, AddCallActivity::class.java)
             startActivity(intent)
@@ -36,19 +58,25 @@ class FirsstActivity : AppCompatActivity(), FirstActivityAddCallAdapter.OnItemCl
         }
 
         binding.activateButton.setOnClickListener {
-            val intent=Intent(applicationContext,FourGroundService::class.java)
-            startForegroundService(intent)
-            //val intent=Intent(this,CallActivity::class.java)
-            //startActivity(intent)
+
+            val intent = Intent(applicationContext, FourGroundService::class.java)
+            intent.putExtra("name", name)
+            intent.putExtra("number", phoneNumber)
+            if (isServiceOn) {
+                stopService(intent)
+
+                binding.activateButton.text="Active"
+                isServiceOn=false;
+            } else {
+
+                binding.activateButton.text="De-Active"
+                startForegroundService(intent)
+                isServiceOn = true;
+
+            }
+
         }
 
-   if(selectedItem==-1)
-   {
-       binding.activateButton.isEnabled=false
-   }
-        else{
-       binding.activateButton.isEnabled=true
-   }
         val layoutManager = LinearLayoutManager(this, LinearLayoutManager.HORIZONTAL, false)
         binding.rr.layoutManager = layoutManager
         binding.rr.addOnScrollListener(object : RecyclerView.OnScrollListener() {
@@ -76,15 +104,11 @@ class FirsstActivity : AppCompatActivity(), FirstActivityAddCallAdapter.OnItemCl
     private fun fetch() {
         lifecycleScope.launch {
             dao.fetchallTable().collect { callList ->
-                val adapter = FirstActivityAddCallAdapter(callList,this@FirsstActivity)
+                val adapter = FirstActivityAddCallAdapter(callList, this@FirsstActivity,selectedItem)
                 binding.rr.adapter = adapter
                 updateArrowsVisibility()
             }
         }
-    }
-
-    override fun onPause() {
-        super.onPause()
     }
 
     private fun updateArrowsVisibility() {
@@ -100,16 +124,32 @@ class FirsstActivity : AppCompatActivity(), FirstActivityAddCallAdapter.OnItemCl
         fetch()
     }
 
-    override fun onItemClick(position: Int,name:String,phoneNumber:String) {
-      selectedItem=position
-        if(selectedItem==-1)
-        {
-            binding.activateButton.isEnabled=false
+    @RequiresApi(Build.VERSION_CODES.O)
+    override fun onItemClick(position: Int, name: String, phoneNumber: String) {
+        selectedItem = position
+        this.name = name
+        this.phoneNumber = phoneNumber
+        updateActivateButtonState()
+        // Save the selected item position in SharedPreferences
+        sharedPreferences.edit().putInt("selectedItem", selectedItem).apply()
+        val intent = Intent(applicationContext, FourGroundService::class.java)
+        intent.putExtra("name", name)
+        intent.putExtra("number", phoneNumber)
+        startForegroundService(intent)
+    }
+
+    private fun updateActivateButtonState() {
+        binding.activateButton.isEnabled =(selectedItem != -1)
+    }
+    fun isServiceRunning(context: Context, serviceClass: Class<*>): Boolean {
+        val manager = context.getSystemService(ACTIVITY_SERVICE) as ActivityManager
+        if (manager != null) {
+            for (service in manager.getRunningServices(Int.MAX_VALUE)) {
+                if (serviceClass.name == service.service.className) {
+                    return true
+                }
+            }
         }
-        else{
-            this.name=name
-            phonenumber=phoneNumber
-            binding.activateButton.isEnabled=true
-        }
+        return false
     }
 }
