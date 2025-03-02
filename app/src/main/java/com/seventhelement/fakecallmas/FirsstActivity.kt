@@ -4,11 +4,13 @@ import android.app.ActivityManager
 import android.content.Context
 import android.content.Intent
 import android.content.SharedPreferences
+import android.net.Uri
 import android.os.Build
 import android.os.Bundle
 import android.provider.Settings
 import android.view.View
 import android.widget.Toast
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.annotation.RequiresApi
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.ActivityCompat
@@ -16,6 +18,8 @@ import androidx.core.content.ContextCompat
 import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
+import com.google.android.material.R
+import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.seventhelement.fakecallmas.Adapter.FirstActivityAddCallAdapter
 import com.seventhelement.fakecallmas.Database.CallApp
 import com.seventhelement.fakecallmas.Database.CallDao
@@ -31,13 +35,17 @@ class FirsstActivity : AppCompatActivity(), FirstActivityAddCallAdapter.OnItemCl
     private var selectedItem = -1
     private var name = ""
     private var phoneNumber = ""
+    var hasNotificationPermissionGranted = false
 
-    @RequiresApi(Build.VERSION_CODES.O)
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         binding = ActivityFirsstBinding.inflate(layoutInflater)
         setContentView(binding.root)
-
+        if (Build.VERSION.SDK_INT >= 33) {
+            notificationPermissionLauncher.launch(android.Manifest.permission.POST_NOTIFICATIONS)
+        } else {
+            hasNotificationPermissionGranted = true
+        }
         dao = (application as CallApp).db.dao()
         sharedPreferences = getSharedPreferences("MyPrefs", Context.MODE_PRIVATE)
         val callPrefs = getSharedPreferences("FakeCallPreferences", Context.MODE_PRIVATE)
@@ -109,7 +117,6 @@ class FirsstActivity : AppCompatActivity(), FirstActivityAddCallAdapter.OnItemCl
         fetch()
     }
 
-    @RequiresApi(Build.VERSION_CODES.O)
     override fun onItemClick(position: Int, name: String, phoneNumber: String) {
         selectedItem = position
         this.name = name
@@ -155,7 +162,7 @@ class FirsstActivity : AppCompatActivity(), FirstActivityAddCallAdapter.OnItemCl
         }
     }
 
-    @RequiresApi(Build.VERSION_CODES.O)
+
     private fun startFakeCallService() {
         val intent = Intent(applicationContext, FourGroundService::class.java).apply {
             putExtra("name", name)
@@ -166,5 +173,46 @@ class FirsstActivity : AppCompatActivity(), FirstActivityAddCallAdapter.OnItemCl
         } else {
             startService(intent)
         }
+    }
+    private val notificationPermissionLauncher =
+        registerForActivityResult(ActivityResultContracts.RequestPermission()) { isGranted ->
+            hasNotificationPermissionGranted = isGranted
+            if (!isGranted) {
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+                    if (Build.VERSION.SDK_INT >= 33) {
+                        if (shouldShowRequestPermissionRationale(android.Manifest.permission.POST_NOTIFICATIONS)) {
+                            showNotificationPermissionRationale()
+                        } else {
+                            showSettingDialog()
+                        }
+                    }
+                }
+            } else {
+                Toast.makeText(applicationContext, "Notification permission granted", Toast.LENGTH_SHORT).show()
+            }
+        }
+    private fun showSettingDialog() {
+        MaterialAlertDialogBuilder(this, R.style.MaterialAlertDialog_Material3)
+            .setTitle("Notification Permission")
+            .setMessage("Notification permission is required, Please allow notification permission from setting")
+            .setPositiveButton("Ok") { _, _ ->
+                val intent = Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS)
+                intent.data = Uri.parse("package:$packageName")
+                startActivity(intent)
+            }
+            .setNegativeButton("Cancel", null)
+            .show()
+    }
+    private fun showNotificationPermissionRationale() {
+        MaterialAlertDialogBuilder(this)
+            .setTitle("Alert")
+            .setMessage("Notification permission is required, to show notification")
+            .setPositiveButton("Ok") { _, _ ->
+                if (Build.VERSION.SDK_INT >= 33) {
+                    notificationPermissionLauncher.launch(android.Manifest.permission.POST_NOTIFICATIONS)
+                }
+            }
+            .setNegativeButton("Cancel", null)
+            .show()
     }
 }
