@@ -6,10 +6,13 @@ import android.content.Intent
 import android.content.SharedPreferences
 import android.os.Build
 import android.os.Bundle
+import android.provider.Settings
 import android.view.View
 import android.widget.Toast
 import androidx.annotation.RequiresApi
 import androidx.appcompat.app.AppCompatActivity
+import androidx.core.app.ActivityCompat
+import androidx.core.content.ContextCompat
 import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
@@ -21,6 +24,7 @@ import com.seventhelement.fakecallmas.service.FourGroundService
 import kotlinx.coroutines.launch
 
 class FirsstActivity : AppCompatActivity(), FirstActivityAddCallAdapter.OnItemClickListener {
+
     private lateinit var binding: ActivityFirsstBinding
     private lateinit var dao: CallDao
     private lateinit var sharedPreferences: SharedPreferences
@@ -33,27 +37,20 @@ class FirsstActivity : AppCompatActivity(), FirstActivityAddCallAdapter.OnItemCl
         super.onCreate(savedInstanceState)
         binding = ActivityFirsstBinding.inflate(layoutInflater)
         setContentView(binding.root)
+
         dao = (application as CallApp).db.dao()
         sharedPreferences = getSharedPreferences("MyPrefs", Context.MODE_PRIVATE)
-       val CallActivitysharedPreferences = getSharedPreferences("FakeCallPreferences", Context.MODE_PRIVATE)
-        name = CallActivitysharedPreferences.getString("name", "Unknown Caller").toString()
-        phoneNumber= CallActivitysharedPreferences.getString("phone", "Unknown Number").toString()
-        //Toast.makeText(this,name+" "+phoneNumber,Toast.LENGTH_SHORT).show()
-        // Retrieve the selected item from SharedPreferences
+        val callPrefs = getSharedPreferences("FakeCallPreferences", Context.MODE_PRIVATE)
+
+        name = callPrefs.getString("name", "Unknown Caller").toString()
+        phoneNumber = callPrefs.getString("phone", "Unknown Number").toString()
+
         selectedItem = sharedPreferences.getInt("selectedItem", -1)
-        //Toast.makeText(this,selectedItem.toString(),Toast.LENGTH_SHORT).show()
+
         updateActivateButtonState()
-        var isServiceOn=isServiceRunning(this,FourGroundService::class.java)
-      if(isServiceOn)
-      {
-          binding.activateButton.text="De-Active"
-      }
-        else
-      {
-          binding.activateButton.text="Active"
 
-      }
-
+        var isServiceOn = isServiceRunning(this, FourGroundService::class.java)
+        binding.activateButton.text = if (isServiceOn) "De-Active" else "Active"
 
         binding.addcallButton.setOnClickListener {
             val intent = Intent(this, AddCallActivity::class.java)
@@ -62,23 +59,7 @@ class FirsstActivity : AppCompatActivity(), FirstActivityAddCallAdapter.OnItemCl
         }
 
         binding.activateButton.setOnClickListener {
-
-            val intent = Intent(applicationContext, FourGroundService::class.java)
-            intent.putExtra("name", name)
-            intent.putExtra("number", phoneNumber)
-            if (isServiceOn) {
-                stopService(intent)
-
-                binding.activateButton.text="Active"
-                isServiceOn=false;
-            } else {
-
-                binding.activateButton.text="De-Active"
-                startForegroundService(intent)
-                isServiceOn = true;
-
-            }
-
+            handleServiceToggle()
         }
 
         val layoutManager = LinearLayoutManager(this, LinearLayoutManager.HORIZONTAL, false)
@@ -108,7 +89,7 @@ class FirsstActivity : AppCompatActivity(), FirstActivityAddCallAdapter.OnItemCl
     private fun fetch() {
         lifecycleScope.launch {
             dao.fetchallTable().collect { callList ->
-                val adapter = FirstActivityAddCallAdapter(callList, this@FirsstActivity,selectedItem)
+                val adapter = FirstActivityAddCallAdapter(callList, this@FirsstActivity, selectedItem)
                 binding.rr.adapter = adapter
                 updateArrowsVisibility()
             }
@@ -134,26 +115,56 @@ class FirsstActivity : AppCompatActivity(), FirstActivityAddCallAdapter.OnItemCl
         this.name = name
         this.phoneNumber = phoneNumber
         updateActivateButtonState()
-        // Save the selected item position in SharedPreferences
+
         sharedPreferences.edit().putInt("selectedItem", selectedItem).apply()
-        val intent = Intent(applicationContext, FourGroundService::class.java)
-        intent.putExtra("name", name)
-        intent.putExtra("number", phoneNumber)
-        startForegroundService(intent)
+
+       // startFakeCallService()
     }
 
     private fun updateActivateButtonState() {
-        binding.activateButton.isEnabled =(selectedItem != -1)
+        binding.activateButton.isEnabled = (selectedItem != -1)
     }
-    fun isServiceRunning(context: Context, serviceClass: Class<*>): Boolean {
+
+    private fun isServiceRunning(context: Context, serviceClass: Class<*>): Boolean {
         val manager = context.getSystemService(ACTIVITY_SERVICE) as ActivityManager
-        if (manager != null) {
-            for (service in manager.getRunningServices(Int.MAX_VALUE)) {
-                if (serviceClass.name == service.service.className) {
-                    return true
-                }
+        for (service in manager.getRunningServices(Int.MAX_VALUE)) {
+            if (serviceClass.name == service.service.className) {
+                return true
             }
         }
         return false
+    }
+
+    private fun handleServiceToggle() {
+        val isServiceOn = isServiceRunning(this, FourGroundService::class.java)
+        val intent = Intent(applicationContext, FourGroundService::class.java).apply {
+            putExtra("name", name)
+            putExtra("number", phoneNumber)
+        }
+
+        if (isServiceOn) {
+            stopService(intent)
+            binding.activateButton.text = "Active"
+        } else {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                ContextCompat.startForegroundService(this, intent)
+            } else {
+                startService(intent)
+            }
+            binding.activateButton.text = "De-Active"
+        }
+    }
+
+    @RequiresApi(Build.VERSION_CODES.O)
+    private fun startFakeCallService() {
+        val intent = Intent(applicationContext, FourGroundService::class.java).apply {
+            putExtra("name", name)
+            putExtra("number", phoneNumber)
+        }
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            ContextCompat.startForegroundService(this, intent)
+        } else {
+            startService(intent)
+        }
     }
 }
