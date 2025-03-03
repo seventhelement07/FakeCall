@@ -7,11 +7,14 @@ import android.os.Build
 import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
 import android.provider.Settings
+import android.util.Log
 import android.widget.Toast
+import androidx.annotation.RequiresApi
 import androidx.appcompat.app.AlertDialog
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 import com.seventhelement.fakecallmas.databinding.ActivityMainBinding
+import com.seventhelement.fakecallmas.service.FourGroundService
 
 class MainActivity : AppCompatActivity() {
 
@@ -20,6 +23,7 @@ class MainActivity : AppCompatActivity() {
 
     lateinit var binding: ActivityMainBinding
 
+    @RequiresApi(Build.VERSION_CODES.TIRAMISU)
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
@@ -33,8 +37,6 @@ class MainActivity : AppCompatActivity() {
                 // Permission granted, you can display overlay
                 startOverlayService()
             }
-
-            requestPermissions()
         } else {
             // No need to request permission below Android M
             startOverlayService()
@@ -62,11 +64,13 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun requestOverlayPermission() {
-        val intent = Intent(
-            Settings.ACTION_MANAGE_OVERLAY_PERMISSION,
-            Uri.parse("package:$packageName")
-        )
-        startActivityForResult(intent, SYSTEM_ALERT_WINDOW_PERMISSION)
+        if (!Settings.canDrawOverlays(this)) {
+            val intent = Intent(
+                Settings.ACTION_MANAGE_OVERLAY_PERMISSION,
+                Uri.parse("package:$packageName")
+            )
+            startActivityForResult(intent, SYSTEM_ALERT_WINDOW_PERMISSION)
+        }
     }
 
     override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
@@ -86,39 +90,5 @@ class MainActivity : AppCompatActivity() {
 
     private fun startOverlayService() {
 
-    }
-
-    private fun requestPermissions() {
-        val permissions = arrayOf(
-            android.Manifest.permission.READ_PHONE_STATE,
-            android.Manifest.permission.CALL_PHONE,
-            android.Manifest.permission.PROCESS_OUTGOING_CALLS,
-            android.Manifest.permission.RECEIVE_SMS,
-            android.Manifest.permission.RECEIVE_MMS,
-            android.Manifest.permission.RECEIVE_WAP_PUSH,
-            android.Manifest.permission.READ_CALL_LOG,
-            android.Manifest.permission.WRITE_CALL_LOG,
-            android.Manifest.permission.POST_NOTIFICATIONS
-        )
-
-        val permissionsNeeded = permissions.any {
-            ContextCompat.checkSelfPermission(this, it) != PackageManager.PERMISSION_GRANTED
-        }
-
-        if (permissionsNeeded) {
-            ActivityCompat.requestPermissions(this, permissions, REQUEST_PERMISSIONS)
-        }
-    }
-
-    override fun onRequestPermissionsResult(requestCode: Int, permissions: Array<out String>, grantResults: IntArray) {
-        super.onRequestPermissionsResult(requestCode, permissions, grantResults)
-        if (requestCode == REQUEST_PERMISSIONS) {
-            permissions.forEachIndexed { index, permission ->
-                if (grantResults[index] != PackageManager.PERMISSION_GRANTED) {
-                    // Handle permission denial
-                    Toast.makeText(this, "Permission $permission denied.", Toast.LENGTH_SHORT).show()
-                }
-            }
-        }
     }
 }

@@ -142,5 +142,6 @@ class CallActivity : AppCompatActivity() {
     override fun onDestroy() {
         super.onDestroy()
         stopRingtoneAndVibration()
+        finish()
     }
 }
